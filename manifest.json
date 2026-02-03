@@ -84,6 +84,23 @@
         "branch": "fix/playwright",
         "url": "/reports/pr/6/21626539032"
       }
+    ],
+    "7": [
+      {
+        "runId": "21626890550",
+        "timestamp": "2026-02-03T10:39:54Z",
+        "sha": "ea8f8343a4bcd423589ffd5f8377b89eb0819e2b",
+        "jobs": [
+          "chromium",
+          "firefox",
+          "mobile-chrome",
+          "mobile-safari",
+          "webkit"
+        ],
+        "actor": "ifeelBALANCED",
+        "branch": "feat/add-navigation",
+        "url": "/reports/pr/7/21626890550"
+      }
     ]
   },
   "scheduled": {
@@ -91,7 +108,7 @@
     "prod": []
   },
   "metadata": {
-    "lastUpdated": "2026-02-03T10:28:27.224Z",
-    "totalReports": 5
+    "lastUpdated": "2026-02-03T10:39:54.940Z",
+    "totalReports": 6
   }
 }

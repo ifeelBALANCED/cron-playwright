@@ -248,6 +248,116 @@
       font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
     }
     
+    .run-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.9rem;
+      background: var(--accent-blue);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    
+    .btn-primary:hover {
+      background: #79b8ff;
+    }
+    
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+    
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.75rem;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    
+    .btn-secondary:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+    
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    
+    .breadcrumb a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+    
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    .breadcrumb-sep {
+      color: var(--text-muted);
+    }
+    
+    .tabs-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-primary);
+      padding-top: 0.25rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .tab:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+    
+    .skip-link {
+      position: absolute;
+      top: -2.5rem;
+      left: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--accent-blue);
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      border-radius: 4px;
+      z-index: 100;
+      transition: top 0.15s;
+    }
+    
+    .skip-link:focus {
+      top: 0.5rem;
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+    
     .empty-state {
       color: var(--text-muted);
       text-align: center;
@@ -320,20 +430,27 @@
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to reports</a>
   <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="https://ifeelBALANCED.github.io/cron-playwright/">App</a>
+      <span class="breadcrumb-sep">/</span>
+      <span aria-current="page">Reports</span>
+    </nav>
+    
     <header>
       <h1>E2E Test Reports</h1>
       <p class="subtitle">Playwright test reports for pull requests and scheduled runs</p>
-      <p class="last-updated">Last updated: Feb 3, 2026, 10:28 AM UTC</p>
+      <p class="last-updated">Last updated: Feb 3, 2026, 10:39 AM UTC</p>
     </header>
     
-    <div class="stats">
+    <div class="stats" aria-label="Report summary">
       <div class="stat-card">
-        <div class="stat-value">5</div>
+        <div class="stat-value">6</div>
         <div class="stat-label">Active PRs</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">5</div>
+        <div class="stat-value">6</div>
         <div class="stat-label">Total Reports</div>
       </div>
       <div class="stat-card">
@@ -346,125 +463,219 @@
       </div>
     </div>
     
-    <div class="tabs">
-      <button class="tab active" data-tab="pr">Pull Requests</button>
-      <button class="tab" data-tab="scheduled">Scheduled</button>
+    <div class="tabs-wrap">
+      <div class="tabs" role="tablist" aria-label="Report type">
+        <button type="button" class="tab active" data-tab="pr" role="tab" aria-selected="true" aria-controls="pr-panel" id="tab-pr">Pull Requests</button>
+        <button type="button" class="tab" data-tab="scheduled" role="tab" aria-selected="false" aria-controls="scheduled-panel" id="tab-scheduled">Scheduled</button>
+      </div>
     </div>
     
-    <div id="pr" class="tab-content active">
-      <div class="section-grid">
-        
-    <div class="pr-section">
-      <h3 class="pr-title">
-        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/6" target="_blank">PR #6</a>
+    <main id="main">
+      <div id="pr-panel" class="tab-content active" role="tabpanel" aria-labelledby="tab-pr">
+        <div class="section-grid">
+          
+    <section class="pr-section" aria-labelledby="pr-7-title">
+      <h2 id="pr-7-title" class="pr-title">
+        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/7" target="_blank" rel="noopener">PR #7</a>
         <span class="run-count">(1 run)</span>
-      </h3>
+      </h2>
       <div class="runs-list">
       <div class="run-entry">
         <div class="run-header">
-          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21626539032" class="run-id" target="_blank">#21626539032</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/702cda51294d06907816892a61e5b3d57dad79df" class="sha" target="_blank">702cda5</a></span>
+          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21626890550" class="run-id" target="_blank" rel="noopener">#21626890550</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/ea8f8343a4bcd423589ffd5f8377b89eb0819e2b" class="sha" target="_blank" rel="noopener">ea8f834</a></span>
+          <span class="run-time">Feb 3, 2026, 10:39 AM UTC</span>
+        </div>
+        <div class="run-actions">
+          <a href="/reports/pr/7/21626890550/chromium/" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          <a href="/reports/pr/7/21626890550/" class="btn-secondary" title="Browse all browser reports">All browsers</a>
+        </div>
+        <div class="job-links" aria-label="Reports by browser"><a href="/reports/pr/7/21626890550/chromium/" class="job-link" title="View chromium report">chromium</a><a href="/reports/pr/7/21626890550/firefox/" class="job-link" title="View firefox report">firefox</a><a href="/reports/pr/7/21626890550/mobile-chrome/" class="job-link" title="View mobile-chrome report">mobile-chrome</a><a href="/reports/pr/7/21626890550/mobile-safari/" class="job-link" title="View mobile-safari report">mobile-safari</a><a href="/reports/pr/7/21626890550/webkit/" class="job-link" title="View webkit report">webkit</a></div>
+        <div class="branch-info">Branch: <code>feat/add-navigation</code></div>
+      </div>
+    </div>
+    </section>
+  
+    <section class="pr-section" aria-labelledby="pr-6-title">
+      <h2 id="pr-6-title" class="pr-title">
+        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/6" target="_blank" rel="noopener">PR #6</a>
+        <span class="run-count">(1 run)</span>
+      </h2>
+      <div class="runs-list">
+      <div class="run-entry">
+        <div class="run-header">
+          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21626539032" class="run-id" target="_blank" rel="noopener">#21626539032</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/702cda51294d06907816892a61e5b3d57dad79df" class="sha" target="_blank" rel="noopener">702cda5</a></span>
           <span class="run-time">Feb 3, 2026, 10:28 AM UTC</span>
         </div>
-        <div class="job-links"><a href="/reports/pr/6/21626539032/chromium/" class="job-link" title="chromium">chromium</a><a href="/reports/pr/6/21626539032/firefox/" class="job-link" title="firefox">firefox</a><a href="/reports/pr/6/21626539032/mobile-chrome/" class="job-link" title="mobile-chrome">mobile-chrome</a><a href="/reports/pr/6/21626539032/mobile-safari/" class="job-link" title="mobile-safari">mobile-safari</a><a href="/reports/pr/6/21626539032/webkit/" class="job-link" title="webkit">webkit</a></div>
+        <div class="run-actions">
+          <a href="/reports/pr/6/21626539032/chromium/" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          <a href="/reports/pr/6/21626539032/" class="btn-secondary" title="Browse all browser reports">All browsers</a>
+        </div>
+        <div class="job-links" aria-label="Reports by browser"><a href="/reports/pr/6/21626539032/chromium/" class="job-link" title="View chromium report">chromium</a><a href="/reports/pr/6/21626539032/firefox/" class="job-link" title="View firefox report">firefox</a><a href="/reports/pr/6/21626539032/mobile-chrome/" class="job-link" title="View mobile-chrome report">mobile-chrome</a><a href="/reports/pr/6/21626539032/mobile-safari/" class="job-link" title="View mobile-safari report">mobile-safari</a><a href="/reports/pr/6/21626539032/webkit/" class="job-link" title="View webkit report">webkit</a></div>
         <div class="branch-info">Branch: <code>fix/playwright</code></div>
       </div>
     </div>
-    </div>
+    </section>
   
-    <div class="pr-section">
-      <h3 class="pr-title">
-        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/5" target="_blank">PR #5</a>
+    <section class="pr-section" aria-labelledby="pr-5-title">
+      <h2 id="pr-5-title" class="pr-title">
+        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/5" target="_blank" rel="noopener">PR #5</a>
         <span class="run-count">(1 run)</span>
-      </h3>
+      </h2>
       <div class="runs-list">
       <div class="run-entry">
         <div class="run-header">
-          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21626366393" class="run-id" target="_blank">#21626366393</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/b7e74bb22fa2ca005382cdb885fba845ddea0965" class="sha" target="_blank">b7e74bb</a></span>
+          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21626366393" class="run-id" target="_blank" rel="noopener">#21626366393</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/b7e74bb22fa2ca005382cdb885fba845ddea0965" class="sha" target="_blank" rel="noopener">b7e74bb</a></span>
           <span class="run-time">Feb 3, 2026, 10:23 AM UTC</span>
         </div>
-        <div class="job-links"><a href="/reports/pr/5/21626366393/chromium/" class="job-link" title="chromium">chromium</a><a href="/reports/pr/5/21626366393/firefox/" class="job-link" title="firefox">firefox</a><a href="/reports/pr/5/21626366393/mobile-chrome/" class="job-link" title="mobile-chrome">mobile-chrome</a><a href="/reports/pr/5/21626366393/mobile-safari/" class="job-link" title="mobile-safari">mobile-safari</a><a href="/reports/pr/5/21626366393/webkit/" class="job-link" title="webkit">webkit</a></div>
+        <div class="run-actions">
+          <a href="/reports/pr/5/21626366393/chromium/" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          <a href="/reports/pr/5/21626366393/" class="btn-secondary" title="Browse all browser reports">All browsers</a>
+        </div>
+        <div class="job-links" aria-label="Reports by browser"><a href="/reports/pr/5/21626366393/chromium/" class="job-link" title="View chromium report">chromium</a><a href="/reports/pr/5/21626366393/firefox/" class="job-link" title="View firefox report">firefox</a><a href="/reports/pr/5/21626366393/mobile-chrome/" class="job-link" title="View mobile-chrome report">mobile-chrome</a><a href="/reports/pr/5/21626366393/mobile-safari/" class="job-link" title="View mobile-safari report">mobile-safari</a><a href="/reports/pr/5/21626366393/webkit/" class="job-link" title="View webkit report">webkit</a></div>
         <div class="branch-info">Branch: <code>fix/github-pages</code></div>
       </div>
     </div>
-    </div>
+    </section>
   
-    <div class="pr-section">
-      <h3 class="pr-title">
-        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/4" target="_blank">PR #4</a>
+    <section class="pr-section" aria-labelledby="pr-4-title">
+      <h2 id="pr-4-title" class="pr-title">
+        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/4" target="_blank" rel="noopener">PR #4</a>
         <span class="run-count">(1 run)</span>
-      </h3>
+      </h2>
       <div class="runs-list">
       <div class="run-entry">
         <div class="run-header">
-          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21625957660" class="run-id" target="_blank">#21625957660</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/d2b994465ef49b1f7ee4450e47a9b08a441bf9b0" class="sha" target="_blank">d2b9944</a></span>
+          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21625957660" class="run-id" target="_blank" rel="noopener">#21625957660</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/d2b994465ef49b1f7ee4450e47a9b08a441bf9b0" class="sha" target="_blank" rel="noopener">d2b9944</a></span>
           <span class="run-time">Feb 3, 2026, 10:11 AM UTC</span>
         </div>
-        <div class="job-links"><a href="/reports/pr/4/21625957660/chromium/" class="job-link" title="chromium">chromium</a><a href="/reports/pr/4/21625957660/firefox/" class="job-link" title="firefox">firefox</a><a href="/reports/pr/4/21625957660/mobile-chrome/" class="job-link" title="mobile-chrome">mobile-chrome</a><a href="/reports/pr/4/21625957660/mobile-safari/" class="job-link" title="mobile-safari">mobile-safari</a><a href="/reports/pr/4/21625957660/webkit/" class="job-link" title="webkit">webkit</a></div>
+        <div class="run-actions">
+          <a href="/reports/pr/4/21625957660/chromium/" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          <a href="/reports/pr/4/21625957660/" class="btn-secondary" title="Browse all browser reports">All browsers</a>
+        </div>
+        <div class="job-links" aria-label="Reports by browser"><a href="/reports/pr/4/21625957660/chromium/" class="job-link" title="View chromium report">chromium</a><a href="/reports/pr/4/21625957660/firefox/" class="job-link" title="View firefox report">firefox</a><a href="/reports/pr/4/21625957660/mobile-chrome/" class="job-link" title="View mobile-chrome report">mobile-chrome</a><a href="/reports/pr/4/21625957660/mobile-safari/" class="job-link" title="View mobile-safari report">mobile-safari</a><a href="/reports/pr/4/21625957660/webkit/" class="job-link" title="View webkit report">webkit</a></div>
         <div class="branch-info">Branch: <code>test/report</code></div>
       </div>
     </div>
-    </div>
+    </section>
   
-    <div class="pr-section">
-      <h3 class="pr-title">
-        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/3" target="_blank">PR #3</a>
+    <section class="pr-section" aria-labelledby="pr-3-title">
+      <h2 id="pr-3-title" class="pr-title">
+        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/3" target="_blank" rel="noopener">PR #3</a>
         <span class="run-count">(1 run)</span>
-      </h3>
+      </h2>
       <div class="runs-list">
       <div class="run-entry">
         <div class="run-header">
-          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21625761220" class="run-id" target="_blank">#21625761220</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/1498158e1f4b3cc2238a10033f0fee17ea93ebbe" class="sha" target="_blank">1498158</a></span>
+          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21625761220" class="run-id" target="_blank" rel="noopener">#21625761220</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/1498158e1f4b3cc2238a10033f0fee17ea93ebbe" class="sha" target="_blank" rel="noopener">1498158</a></span>
           <span class="run-time">Feb 3, 2026, 10:05 AM UTC</span>
         </div>
-        <div class="job-links"><a href="/reports/pr/3/21625761220/chromium/" class="job-link" title="chromium">chromium</a><a href="/reports/pr/3/21625761220/firefox/" class="job-link" title="firefox">firefox</a><a href="/reports/pr/3/21625761220/mobile-chrome/" class="job-link" title="mobile-chrome">mobile-chrome</a><a href="/reports/pr/3/21625761220/mobile-safari/" class="job-link" title="mobile-safari">mobile-safari</a><a href="/reports/pr/3/21625761220/webkit/" class="job-link" title="webkit">webkit</a></div>
+        <div class="run-actions">
+          <a href="/reports/pr/3/21625761220/chromium/" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          <a href="/reports/pr/3/21625761220/" class="btn-secondary" title="Browse all browser reports">All browsers</a>
+        </div>
+        <div class="job-links" aria-label="Reports by browser"><a href="/reports/pr/3/21625761220/chromium/" class="job-link" title="View chromium report">chromium</a><a href="/reports/pr/3/21625761220/firefox/" class="job-link" title="View firefox report">firefox</a><a href="/reports/pr/3/21625761220/mobile-chrome/" class="job-link" title="View mobile-chrome report">mobile-chrome</a><a href="/reports/pr/3/21625761220/mobile-safari/" class="job-link" title="View mobile-safari report">mobile-safari</a><a href="/reports/pr/3/21625761220/webkit/" class="job-link" title="View webkit report">webkit</a></div>
         <div class="branch-info">Branch: <code>test/ci-actions</code></div>
       </div>
     </div>
-    </div>
+    </section>
   
-    <div class="pr-section">
-      <h3 class="pr-title">
-        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/2" target="_blank">PR #2</a>
+    <section class="pr-section" aria-labelledby="pr-2-title">
+      <h2 id="pr-2-title" class="pr-title">
+        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/2" target="_blank" rel="noopener">PR #2</a>
         <span class="run-count">(1 run)</span>
-      </h3>
+      </h2>
       <div class="runs-list">
       <div class="run-entry">
         <div class="run-header">
-          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21625299658" class="run-id" target="_blank">#21625299658</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/f0dd5323a9ae2713a6d2117c1f63df8d26c1fae8" class="sha" target="_blank">f0dd532</a></span>
+          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21625299658" class="run-id" target="_blank" rel="noopener">#21625299658</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/f0dd5323a9ae2713a6d2117c1f63df8d26c1fae8" class="sha" target="_blank" rel="noopener">f0dd532</a></span>
           <span class="run-time">Feb 3, 2026, 09:51 AM UTC</span>
         </div>
-        <div class="job-links"><a href="/reports/pr/2/21625299658/chromium/" class="job-link" title="chromium">chromium</a><a href="/reports/pr/2/21625299658/firefox/" class="job-link" title="firefox">firefox</a><a href="/reports/pr/2/21625299658/mobile-chrome/" class="job-link" title="mobile-chrome">mobile-chrome</a><a href="/reports/pr/2/21625299658/mobile-safari/" class="job-link" title="mobile-safari">mobile-safari</a><a href="/reports/pr/2/21625299658/webkit/" class="job-link" title="webkit">webkit</a></div>
+        <div class="run-actions">
+          <a href="/reports/pr/2/21625299658/chromium/" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          <a href="/reports/pr/2/21625299658/" class="btn-secondary" title="Browse all browser reports">All browsers</a>
+        </div>
+        <div class="job-links" aria-label="Reports by browser"><a href="/reports/pr/2/21625299658/chromium/" class="job-link" title="View chromium report">chromium</a><a href="/reports/pr/2/21625299658/firefox/" class="job-link" title="View firefox report">firefox</a><a href="/reports/pr/2/21625299658/mobile-chrome/" class="job-link" title="View mobile-chrome report">mobile-chrome</a><a href="/reports/pr/2/21625299658/mobile-safari/" class="job-link" title="View mobile-safari report">mobile-safari</a><a href="/reports/pr/2/21625299658/webkit/" class="job-link" title="View webkit report">webkit</a></div>
         <div class="branch-info">Branch: <code>test/ci</code></div>
       </div>
     </div>
-    </div>
+    </section>
   
+        </div>
       </div>
-    </div>
-    
-    <div id="scheduled" class="tab-content">
-      <div class="section-grid">
-        
-        <p class="empty-state">No scheduled reports yet</p>
+      
+      <div id="scheduled-panel" class="tab-content" role="tabpanel" aria-labelledby="tab-scheduled" hidden>
+        <div class="section-grid">
+          
+          <p class="empty-state">No scheduled reports yet</p>
+        </div>
       </div>
-    </div>
+    </main>
     
     <footer>
-      <a href="https://github.com/ifeelBALANCED/cron-playwright" target="_blank">View Repository</a> · 
-      Powered by <a href="https://playwright.dev" target="_blank">Playwright</a>
+      <a href="https://github.com/ifeelBALANCED/cron-playwright" target="_blank" rel="noopener">View Repository</a> · 
+      Powered by <a href="https://playwright.dev" target="_blank" rel="noopener">Playwright</a>
     </footer>
   </div>
   
   <script>
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab).classList.add('active');
-      });
+{
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-content');
+
+  const setTab = (activeTab) => {
+    const tabId = activeTab.dataset.tab;
+    tabs.forEach((t) => {
+      const isActive = t === activeTab;
+      t.classList.toggle('active', isActive);
+      t.setAttribute('aria-selected', isActive);
     });
+    panels.forEach((p) => {
+      const isActive = p.id === tabId + '-panel';
+      p.classList.toggle('active', isActive);
+      p.hidden = !isActive;
+    });
+    try {
+      window.location.hash = tabId;
+    } catch (_) {}
+  };
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => setTab(tab));
+    tab.addEventListener('keydown', (e) => {
+      const idx = [...tabs].indexOf(tab);
+      if (e.key === 'ArrowRight' && idx < tabs.length - 1) {
+        e.preventDefault();
+        setTab(tabs[idx + 1]);
+        tabs[idx + 1].focus();
+      }
+      if (e.key === 'ArrowLeft' && idx > 0) {
+        e.preventDefault();
+        setTab(tabs[idx - 1]);
+        tabs[idx - 1].focus();
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        setTab(tabs[0]);
+        tabs[0].focus();
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        setTab(tabs[tabs.length - 1]);
+        tabs[tabs.length - 1].focus();
+      }
+    });
+  });
+
+  const hash = (window.location.hash || '#pr').slice(1);
+  const byHash = document.querySelector(`.tab[data-tab="${hash}"]`);
+  if (byHash) setTab(byHash);
+
+  window.addEventListener('hashchange', () => {
+    const h = (window.location.hash || '#pr').slice(1);
+    const tabEl = document.querySelector(`.tab[data-tab="${h}"]`);
+    if (tabEl) setTab(tabEl);
+  });
+}
   </script>
 </body>
 </html>
