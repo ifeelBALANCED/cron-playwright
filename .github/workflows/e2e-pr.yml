@@ -193,8 +193,15 @@ jobs:
             cp _gh-pages/manifest.json _site/
           fi
           
-          # Copy built app
+          # Copy built app (root index.html + assets)
           cp -R dist/* _site/
+          
+          # Preserve .nojekyll so GitHub Pages serves static files (no Jekyll)
+          if [ -f "_gh-pages/.nojekyll" ]; then
+            cp _gh-pages/.nojekyll _site/
+          else
+            touch _site/.nojekyll
+          fi
           
           # Create report directories (ensures _site/reports exists for generate-index)
           REPORT_BASE="_site/reports/pr/${PR_NUMBER}/${RUN_ID}"

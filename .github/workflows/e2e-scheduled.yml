@@ -281,8 +281,15 @@ jobs:
             cp _gh-pages/manifest.json _site/
           fi
           
-          # Copy built app
+          # Copy built app (root index.html + assets)
           cp -R dist/* _site/
+          
+          # Preserve .nojekyll so GitHub Pages serves static files (no Jekyll)
+          if [ -f "_gh-pages/.nojekyll" ]; then
+            cp _gh-pages/.nojekyll _site/
+          else
+            touch _site/.nojekyll
+          fi
           
           # Process each environment
           for artifact_dir in _artifacts/playwright-report-*/; do
