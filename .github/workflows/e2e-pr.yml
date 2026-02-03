@@ -146,6 +146,7 @@ jobs:
         with:
           path: _artifacts
           pattern: playwright-report-*
+        continue-on-error: true
       
       - name: List downloaded artifacts
         run: |
@@ -180,6 +181,9 @@ jobs:
           ACTOR="${{ github.actor }}"
           TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           
+          # Ensure _artifacts exists (download-artifact may have failed)
+          mkdir -p _artifacts
+          
           # Copy existing gh-pages content
           mkdir -p _site
           if [ -d "_gh-pages/reports" ]; then
@@ -192,7 +196,7 @@ jobs:
           # Copy built app
           cp -R dist/* _site/
           
-          # Create report directories
+          # Create report directories (ensures _site/reports exists for generate-index)
           REPORT_BASE="_site/reports/pr/${PR_NUMBER}/${RUN_ID}"
           mkdir -p "${REPORT_BASE}"
           
@@ -231,6 +235,13 @@ jobs:
       
       - name: Update manifest and prune old reports
         run: |
+          # Build jobs array: empty JOBS -> [], else "a,b,c" -> ["a","b","c"]
+          JOBS_RAW="${{ steps.prepare.outputs.JOBS }}"
+          if [ -z "${JOBS_RAW}" ]; then
+            JOBS_JSON="[]"
+          else
+            JOBS_JSON="[$(echo "${JOBS_RAW}" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')]"
+          fi
           # Build the report JSON for the manifest
           REPORT_JSON=$(cat <<EOF
           {
@@ -241,7 +252,7 @@ jobs:
             "branch": "${{ steps.prepare.outputs.BRANCH }}",
             "actor": "${{ steps.prepare.outputs.ACTOR }}",
             "timestamp": "${{ steps.prepare.outputs.TIMESTAMP }}",
-            "jobs": [$(echo "${{ steps.prepare.outputs.JOBS }}" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/' | sed 's/^""$//')]
+            "jobs": ${JOBS_JSON}
           }
           EOF
           )
@@ -278,6 +289,7 @@ jobs:
       
       - name: Post PR comment with report links
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

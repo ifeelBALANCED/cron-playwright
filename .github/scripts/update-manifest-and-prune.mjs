@@ -202,7 +202,8 @@ function addNewReport(manifest, reportJson) {
   const report = JSON.parse(reportJson);
   
   if (report.type === 'pr') {
-    const { pr, runId, sha, jobs, timestamp, actor, branch } = report;
+    const { pr, runId, sha, timestamp, actor, branch } = report;
+    const jobs = Array.isArray(report.jobs) ? report.jobs : [];
     
     if (!manifest.pr[pr]) {
       manifest.pr[pr] = [];
@@ -224,7 +225,8 @@ function addNewReport(manifest, reportJson) {
     console.log(`Added PR #${pr} run ${runId} with jobs: ${jobs.join(', ')}`);
   } 
   else if (report.type === 'scheduled') {
-    const { env, date, runId, sha, jobs, timestamp } = report;
+    const { env, date, runId, sha, timestamp } = report;
+    const jobs = Array.isArray(report.jobs) ? report.jobs : [];
     
     if (!manifest.scheduled[env]) {
       manifest.scheduled[env] = [];
