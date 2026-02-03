@@ -1,0 +1,335 @@
+# =============================================================================
+# E2E Tests for Pull Requests
+# =============================================================================
+# Runs Playwright E2E tests on every PR and deploys HTML reports to GitHub Pages.
+#
+# Features:
+# - Matrix strategy for parallel browser/shard testing
+# - HTML report generation per job
+# - Automatic deployment to gh-pages branch
+# - PR comment with report links
+# - Retention/cleanup of old reports
+#
+# Report URL structure:
+#   https://<owner>.github.io/<repo>/reports/pr/<PR_NUMBER>/<RUN_ID>/<JOB>/
+#
+# Security:
+# - Fork PRs use pull_request_target with explicit checkout
+# - Write permissions only on deploy job (runs in base repo context)
+# =============================================================================
+
+name: E2E Tests (PR)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # For fork PRs: use pull_request_target for write access
+  # Uncomment if you need fork PR support:
+  # pull_request_target:
+  #   types: [opened, synchronize, reopened]
+
+# Prevent concurrent deploys for the same PR
+concurrency:
+  group: e2e-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false  # Let running tests complete
+
+# Environment variables for configuration
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+  # Retention settings
+  KEEP_PR_RUNS: '20'
+  KEEP_SCHEDULED_PER_ENV: '30'
+  GLOBAL_CAP: '500'
+
+jobs:
+  # ===========================================================================
+  # E2E Test Matrix
+  # ===========================================================================
+  e2e:
+    name: E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chromium
+          - firefox
+          - webkit
+          - mobile-chrome
+          - mobile-safari
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # For fork PRs with pull_request_target, use:
+        # with:
+        #   ref: ${{ github.event.pull_request.head.sha }}
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps ${{ matrix.project == 'mobile-chrome' && 'chromium' || matrix.project == 'mobile-safari' && 'webkit' || matrix.project }}
+      
+      - name: Build application
+        run: pnpm build
+      
+      - name: Run Playwright tests
+        id: tests
+        run: |
+          pnpm exec playwright test \
+            --project=${{ matrix.project }} \
+            --reporter=html,github,list
+        env:
+          CI: true
+          PLAYWRIGHT_HTML_REPORT: playwright-report
+        continue-on-error: true
+      
+      - name: Upload Playwright report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report
+          retention-days: 7
+          if-no-files-found: ignore
+      
+      - name: Set test outcome
+        if: always()
+        run: |
+          echo "TEST_OUTCOME=${{ steps.tests.outcome }}" >> $GITHUB_ENV
+
+  # ===========================================================================
+  # Deploy Reports to GitHub Pages
+  # ===========================================================================
+  deploy-reports:
+    name: Deploy Reports
+    needs: e2e
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    permissions:
+      contents: write
+      pull-requests: write
+      pages: write
+    
+    # Prevent race conditions with other deployments
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build application (for app deployment)
+        run: pnpm build
+      
+      - name: Download all report artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _artifacts
+          pattern: playwright-report-*
+      
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -la _artifacts/ || echo "No artifacts found"
+          for d in _artifacts/*/; do
+            echo "--- $d ---"
+            ls -la "$d" || true
+          done
+      
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: _gh-pages
+        continue-on-error: true
+      
+      - name: Initialize gh-pages if needed
+        run: |
+          if [ ! -d "_gh-pages" ]; then
+            mkdir -p _gh-pages
+            echo "Initialized new gh-pages directory"
+          fi
+      
+      - name: Prepare site structure
+        id: prepare
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          RUN_ID="${{ github.run_id }}"
+          SHA="${{ github.event.pull_request.head.sha }}"
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          ACTOR="${{ github.actor }}"
+          TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          
+          # Copy existing gh-pages content
+          mkdir -p _site
+          if [ -d "_gh-pages/reports" ]; then
+            cp -R _gh-pages/reports _site/
+          fi
+          if [ -f "_gh-pages/manifest.json" ]; then
+            cp _gh-pages/manifest.json _site/
+          fi
+          
+          # Copy built app
+          cp -R dist/* _site/
+          
+          # Create report directories
+          REPORT_BASE="_site/reports/pr/${PR_NUMBER}/${RUN_ID}"
+          mkdir -p "${REPORT_BASE}"
+          
+          # Collect job names for manifest
+          JOBS=""
+          
+          # Copy each artifact to its directory
+          for artifact_dir in _artifacts/playwright-report-*/; do
+            if [ -d "$artifact_dir" ]; then
+              job_name=$(basename "$artifact_dir" | sed 's/playwright-report-//')
+              target_dir="${REPORT_BASE}/${job_name}"
+              mkdir -p "$target_dir"
+              cp -R "$artifact_dir"/* "$target_dir/" 2>/dev/null || true
+              
+              if [ -n "$JOBS" ]; then
+                JOBS="${JOBS},${job_name}"
+              else
+                JOBS="${job_name}"
+              fi
+              
+              echo "Copied report for: $job_name"
+            fi
+          done
+          
+          # Export for later steps
+          echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_OUTPUT
+          echo "RUN_ID=${RUN_ID}" >> $GITHUB_OUTPUT
+          echo "SHA=${SHA}" >> $GITHUB_OUTPUT
+          echo "BRANCH=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "ACTOR=${ACTOR}" >> $GITHUB_OUTPUT
+          echo "TIMESTAMP=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "JOBS=${JOBS}" >> $GITHUB_OUTPUT
+          
+          echo "Prepared reports for PR #${PR_NUMBER}, run ${RUN_ID}"
+          echo "Jobs: ${JOBS}"
+      
+      - name: Update manifest and prune old reports
+        run: |
+          # Build the report JSON for the manifest
+          REPORT_JSON=$(cat <<EOF
+          {
+            "type": "pr",
+            "pr": "${{ steps.prepare.outputs.PR_NUMBER }}",
+            "runId": "${{ steps.prepare.outputs.RUN_ID }}",
+            "sha": "${{ steps.prepare.outputs.SHA }}",
+            "branch": "${{ steps.prepare.outputs.BRANCH }}",
+            "actor": "${{ steps.prepare.outputs.ACTOR }}",
+            "timestamp": "${{ steps.prepare.outputs.TIMESTAMP }}",
+            "jobs": [$(echo "${{ steps.prepare.outputs.JOBS }}" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/' | sed 's/^""$//')]
+          }
+          EOF
+          )
+          
+          node .github/scripts/update-manifest-and-prune.mjs \
+            --siteDir _site \
+            --keepPrRuns "${{ env.KEEP_PR_RUNS }}" \
+            --keepScheduledPerEnv "${{ env.KEEP_SCHEDULED_PER_ENV }}" \
+            --globalCap "${{ env.GLOBAL_CAP }}" \
+            --addReport "${REPORT_JSON}"
+      
+      - name: Generate index page
+        run: |
+          REPO_URL="https://github.com/${{ github.repository }}"
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          
+          node .github/scripts/generate-index.mjs \
+            --siteDir _site \
+            --repoUrl "${REPO_URL}" \
+            --pagesUrl "${PAGES_URL}"
+      
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          keep_files: false
+          enable_jekyll: false
+          commit_message: |
+            Deploy reports for PR #${{ steps.prepare.outputs.PR_NUMBER }} (run ${{ steps.prepare.outputs.RUN_ID }})
+      
+      - name: Wait for Pages deployment
+        run: sleep 30
+      
+      - name: Post PR comment with report links
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Determine overall test status
+          STATUS="success"
+          if [ "${{ needs.e2e.result }}" == "failure" ]; then
+            STATUS="failure"
+          elif [ "${{ needs.e2e.result }}" == "cancelled" ]; then
+            STATUS="cancelled"
+          fi
+          
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          
+          node .github/scripts/post-pr-comment.mjs \
+            --owner "${{ github.repository_owner }}" \
+            --repo "${{ github.event.repository.name }}" \
+            --pr "${{ steps.prepare.outputs.PR_NUMBER }}" \
+            --runId "${{ steps.prepare.outputs.RUN_ID }}" \
+            --sha "${{ steps.prepare.outputs.SHA }}" \
+            --pagesUrl "${PAGES_URL}" \
+            --jobs "${{ steps.prepare.outputs.JOBS }}" \
+            --status "${STATUS}"
+      
+      - name: Print report URLs
+        run: |
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          PR="${{ steps.prepare.outputs.PR_NUMBER }}"
+          RUN="${{ steps.prepare.outputs.RUN_ID }}"
+          
+          echo "============================================"
+          echo "📊 Playwright Report URLs"
+          echo "============================================"
+          echo ""
+          echo "Reports Index: ${PAGES_URL}/reports/"
+          echo ""
+          
+          IFS=',' read -ra JOBS <<< "${{ steps.prepare.outputs.JOBS }}"
+          for job in "${JOBS[@]}"; do
+            echo "- ${job}: ${PAGES_URL}/reports/pr/${PR}/${RUN}/${job}/"
+          done
+          
+          echo ""
+          echo "============================================"

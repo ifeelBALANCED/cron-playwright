@@ -1,0 +1,427 @@
+# =============================================================================
+# Scheduled E2E Tests (Stage & Prod)
+# =============================================================================
+# Runs Playwright E2E tests on a schedule against staging and production.
+# Deploys HTML reports to GitHub Pages.
+#
+# Features:
+# - Daily scheduled runs (configurable cron)
+# - Matrix strategy for environment x test suite
+# - HTML report generation per job
+# - Automatic deployment to gh-pages branch
+# - Retention/cleanup of old reports
+#
+# Report URL structure:
+#   https://<owner>.github.io/<repo>/reports/scheduled/<ENV>/<YYYY-MM-DD>/<RUN_ID>/<SUITE>/
+#
+# Manual trigger:
+#   gh workflow run e2e-scheduled.yml -f environment=stage -f suite=smoke
+# =============================================================================
+
+name: E2E Tests (Scheduled)
+
+on:
+  schedule:
+    # Run daily at 3 AM UTC (stage) and 4 AM UTC (prod)
+    - cron: '0 3 * * *'   # Daily at 03:00 UTC
+    - cron: '0 4 * * *'   # Daily at 04:00 UTC (separate window for prod)
+  
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'stage'
+        type: choice
+        options:
+          - stage
+          - prod
+          - both
+      suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - smoke
+          - regression
+          - all
+
+# Prevent concurrent scheduled runs
+concurrency:
+  group: e2e-scheduled-${{ github.event.schedule || github.event.inputs.environment || 'manual' }}
+  cancel-in-progress: false
+
+# Environment variables for configuration
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+  # Retention settings
+  KEEP_PR_RUNS: '20'
+  KEEP_SCHEDULED_PER_ENV: '30'
+  GLOBAL_CAP: '500'
+  # Default URLs (override in repository secrets or environment)
+  STAGE_URL: ${{ vars.STAGE_URL || 'https://stage.example.com' }}
+  PROD_URL: ${{ vars.PROD_URL || 'https://example.com' }}
+
+jobs:
+  # ===========================================================================
+  # Determine what to run
+  # ===========================================================================
+  setup:
+    name: Setup Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      date: ${{ steps.set-matrix.outputs.date }}
+    
+    steps:
+      - name: Determine matrix configuration
+        id: set-matrix
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          echo "date=${DATE}" >> $GITHUB_OUTPUT
+          
+          # Determine environment based on trigger
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            # Schedule trigger: determine env from cron time
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" == "03" ]; then
+              ENVS='["stage"]'
+            else
+              ENVS='["prod"]'
+            fi
+            SUITES='["smoke", "regression"]'
+          else
+            # Manual trigger
+            ENV="${{ github.event.inputs.environment }}"
+            SUITE="${{ github.event.inputs.suite }}"
+            
+            if [ "$ENV" == "both" ]; then
+              ENVS='["stage", "prod"]'
+            else
+              ENVS='["'"$ENV"'"]'
+            fi
+            
+            if [ "$SUITE" == "all" ]; then
+              SUITES='["smoke", "regression"]'
+            else
+              SUITES='["'"$SUITE"'"]'
+            fi
+          fi
+          
+          # Build matrix JSON
+          MATRIX=$(cat <<EOF
+          {
+            "env": ${ENVS},
+            "suite": ${SUITES}
+          }
+          EOF
+          )
+          
+          echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+          echo "Matrix configuration: ${MATRIX}"
+
+  # ===========================================================================
+  # E2E Test Matrix
+  # ===========================================================================
+  e2e:
+    name: E2E (${{ matrix.env }}/${{ matrix.suite }})
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+      
+      - name: Run Playwright tests
+        id: tests
+        run: |
+          # Determine grep pattern for test suite
+          GREP_PATTERN=""
+          if [ "${{ matrix.suite }}" == "smoke" ]; then
+            GREP_PATTERN="--grep @smoke"
+          elif [ "${{ matrix.suite }}" == "regression" ]; then
+            GREP_PATTERN="--grep @regression"
+          fi
+          
+          pnpm exec playwright test \
+            ${GREP_PATTERN} \
+            --reporter=html,github,list
+        env:
+          CI: true
+          TARGET_ENV: ${{ matrix.env }}
+          TEST_SUITE: ${{ matrix.suite }}
+          STAGE_URL: ${{ env.STAGE_URL }}
+          PROD_URL: ${{ env.PROD_URL }}
+          PLAYWRIGHT_HTML_REPORT: playwright-report
+        continue-on-error: true
+      
+      - name: Upload Playwright report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.env }}-${{ matrix.suite }}
+          path: playwright-report
+          retention-days: 14
+          if-no-files-found: ignore
+      
+      - name: Upload test results for further analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.env }}-${{ matrix.suite }}
+          path: test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # Deploy Reports to GitHub Pages
+  # ===========================================================================
+  deploy-reports:
+    name: Deploy Reports
+    needs: [setup, e2e]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    permissions:
+      contents: write
+      pages: write
+    
+    # Prevent race conditions with other deployments
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build application
+        run: pnpm build
+      
+      - name: Download all report artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _artifacts
+          pattern: playwright-report-*
+      
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -la _artifacts/ || echo "No artifacts found"
+          for d in _artifacts/*/; do
+            echo "--- $d ---"
+            ls -la "$d" || true
+          done
+      
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: _gh-pages
+        continue-on-error: true
+      
+      - name: Initialize gh-pages if needed
+        run: |
+          if [ ! -d "_gh-pages" ]; then
+            mkdir -p _gh-pages
+            echo "Initialized new gh-pages directory"
+          fi
+      
+      - name: Prepare site structure
+        id: prepare
+        run: |
+          DATE="${{ needs.setup.outputs.date }}"
+          RUN_ID="${{ github.run_id }}"
+          SHA="${{ github.sha }}"
+          TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          
+          # Copy existing gh-pages content
+          mkdir -p _site
+          if [ -d "_gh-pages/reports" ]; then
+            cp -R _gh-pages/reports _site/
+          fi
+          if [ -f "_gh-pages/manifest.json" ]; then
+            cp _gh-pages/manifest.json _site/
+          fi
+          
+          # Copy built app
+          cp -R dist/* _site/
+          
+          # Process each environment
+          for artifact_dir in _artifacts/playwright-report-*/; do
+            if [ -d "$artifact_dir" ]; then
+              artifact_name=$(basename "$artifact_dir")
+              # Extract env-suite from playwright-report-env-suite
+              env_suite="${artifact_name#playwright-report-}"
+              env="${env_suite%%-*}"
+              suite="${env_suite#*-}"
+              
+              # Create directory structure: /reports/scheduled/<env>/<date>/<run_id>/<suite>/
+              target_dir="_site/reports/scheduled/${env}/${DATE}/${RUN_ID}/${suite}"
+              mkdir -p "$target_dir"
+              cp -R "$artifact_dir"/* "$target_dir/" 2>/dev/null || true
+              
+              echo "Copied report for: ${env}/${suite} -> ${target_dir}"
+            fi
+          done
+          
+          # Export for later steps
+          echo "DATE=${DATE}" >> $GITHUB_OUTPUT
+          echo "RUN_ID=${RUN_ID}" >> $GITHUB_OUTPUT
+          echo "SHA=${SHA}" >> $GITHUB_OUTPUT
+          echo "TIMESTAMP=${TIMESTAMP}" >> $GITHUB_OUTPUT
+      
+      - name: Update manifest for each environment
+        run: |
+          DATE="${{ steps.prepare.outputs.DATE }}"
+          RUN_ID="${{ steps.prepare.outputs.RUN_ID }}"
+          SHA="${{ steps.prepare.outputs.SHA }}"
+          TIMESTAMP="${{ steps.prepare.outputs.TIMESTAMP }}"
+          
+          # Group artifacts by environment
+          declare -A ENV_JOBS
+          
+          for artifact_dir in _artifacts/playwright-report-*/; do
+            if [ -d "$artifact_dir" ]; then
+              artifact_name=$(basename "$artifact_dir")
+              env_suite="${artifact_name#playwright-report-}"
+              env="${env_suite%%-*}"
+              suite="${env_suite#*-}"
+              
+              if [ -z "${ENV_JOBS[$env]}" ]; then
+                ENV_JOBS[$env]="$suite"
+              else
+                ENV_JOBS[$env]="${ENV_JOBS[$env]},$suite"
+              fi
+            fi
+          done
+          
+          # Update manifest for each environment
+          for env in "${!ENV_JOBS[@]}"; do
+            jobs="${ENV_JOBS[$env]}"
+            
+            REPORT_JSON=$(cat <<EOF
+          {
+            "type": "scheduled",
+            "env": "${env}",
+            "date": "${DATE}",
+            "runId": "${RUN_ID}",
+            "sha": "${SHA}",
+            "timestamp": "${TIMESTAMP}",
+            "jobs": [$(echo "$jobs" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/' | sed 's/^""$//')]
+          }
+          EOF
+            )
+            
+            node .github/scripts/update-manifest-and-prune.mjs \
+              --siteDir _site \
+              --keepPrRuns "${{ env.KEEP_PR_RUNS }}" \
+              --keepScheduledPerEnv "${{ env.KEEP_SCHEDULED_PER_ENV }}" \
+              --globalCap "${{ env.GLOBAL_CAP }}" \
+              --addReport "${REPORT_JSON}"
+          done
+      
+      - name: Generate index page
+        run: |
+          REPO_URL="https://github.com/${{ github.repository }}"
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          
+          node .github/scripts/generate-index.mjs \
+            --siteDir _site \
+            --repoUrl "${REPO_URL}" \
+            --pagesUrl "${PAGES_URL}"
+      
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          keep_files: false
+          enable_jekyll: false
+          commit_message: |
+            Deploy scheduled reports (${{ steps.prepare.outputs.DATE }}, run ${{ steps.prepare.outputs.RUN_ID }})
+      
+      - name: Print report URLs
+        run: |
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          DATE="${{ steps.prepare.outputs.DATE }}"
+          RUN="${{ steps.prepare.outputs.RUN_ID }}"
+          
+          echo "============================================"
+          echo "📊 Playwright Scheduled Report URLs"
+          echo "============================================"
+          echo ""
+          echo "Reports Index: ${PAGES_URL}/reports/"
+          echo ""
+          
+          for artifact_dir in _artifacts/playwright-report-*/; do
+            if [ -d "$artifact_dir" ]; then
+              artifact_name=$(basename "$artifact_dir")
+              env_suite="${artifact_name#playwright-report-}"
+              env="${env_suite%%-*}"
+              suite="${env_suite#*-}"
+              
+              echo "- ${env}/${suite}: ${PAGES_URL}/reports/scheduled/${env}/${DATE}/${RUN}/${suite}/"
+            fi
+          done
+          
+          echo ""
+          echo "============================================"
+
+  # ===========================================================================
+  # Notify on Failure (Optional)
+  # ===========================================================================
+  notify-failure:
+    name: Notify on Failure
+    needs: [e2e, deploy-reports]
+    if: failure()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send notification
+        run: |
+          echo "::warning::Scheduled E2E tests failed!"
+          echo "Check the workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          # Uncomment and configure for Slack notification:
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"⚠️ Scheduled E2E tests failed! <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"}' \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}
