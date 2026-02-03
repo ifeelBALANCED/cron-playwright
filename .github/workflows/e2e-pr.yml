@@ -43,9 +43,6 @@ env:
   GLOBAL_CAP: '500'
 
 jobs:
-  # ===========================================================================
-  # E2E Test Matrix
-  # ===========================================================================
   e2e:
     name: E2E (${{ matrix.project }})
     runs-on: ubuntu-latest
@@ -112,9 +109,6 @@ jobs:
         run: |
           echo "TEST_OUTCOME=${{ steps.tests.outcome }}" >> $GITHUB_ENV
 
-  # ===========================================================================
-  # Deploy Reports to GitHub Pages
-  # ===========================================================================
   deploy-reports:
     name: Deploy Reports
     needs: e2e
@@ -127,7 +121,6 @@ jobs:
       pull-requests: write
       pages: write
     
-    # Prevent race conditions with other deployments
     concurrency:
       group: gh-pages-deploy
       cancel-in-progress: false

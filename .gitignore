@@ -38,3 +38,5 @@ dist-ssr
 _site/
 _gh-pages/
 _artifacts/
+.vercel
+.env*.local

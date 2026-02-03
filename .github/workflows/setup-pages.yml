@@ -1,12 +1,3 @@
-# =============================================================================
-# Initialize GitHub Pages
-# =============================================================================
-# One-time setup workflow to initialize the gh-pages branch if it doesn't exist.
-# This ensures the deployment workflows have a branch to push to.
-#
-# Run manually via: gh workflow run setup-pages.yml
-# =============================================================================
-
 name: Setup GitHub Pages
 
 on:
