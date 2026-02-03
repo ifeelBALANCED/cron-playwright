@@ -14,7 +14,7 @@ test.describe('Homepage', () => {
   });
 
   test('should have correct title @smoke', async ({ page }) => {
-    await expect(page).toHaveTitle(/Vite/);
+    await expect(page).toHaveTitle(/Playwright Cron Test Reports/);
   });
 
   test('should display Vite logo @smoke', async ({ page }) => {
