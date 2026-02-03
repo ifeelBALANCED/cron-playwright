@@ -55,7 +55,6 @@ concurrency:
 # Environment variables for configuration
 env:
   NODE_VERSION: '20'
-  PNPM_VERSION: '9'
   # Retention settings
   KEEP_PR_RUNS: '20'
   KEEP_SCHEDULED_PER_ENV: '30'
@@ -140,9 +139,7 @@ jobs:
       
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -221,9 +218,7 @@ jobs:
       
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
