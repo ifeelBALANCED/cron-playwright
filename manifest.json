@@ -1,0 +1,29 @@
+{
+  "pr": {
+    "2": [
+      {
+        "runId": "21625299658",
+        "timestamp": "2026-02-03T09:51:38Z",
+        "sha": "f0dd5323a9ae2713a6d2117c1f63df8d26c1fae8",
+        "jobs": [
+          "chromium",
+          "firefox",
+          "mobile-chrome",
+          "mobile-safari",
+          "webkit"
+        ],
+        "actor": "ifeelBALANCED",
+        "branch": "test/ci",
+        "url": "/reports/pr/2/21625299658"
+      }
+    ]
+  },
+  "scheduled": {
+    "stage": [],
+    "prod": []
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-03T09:51:38.813Z",
+    "totalReports": 1
+  }
+}

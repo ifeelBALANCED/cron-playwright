@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E2E Test Reports</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --border-color: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-yellow: #d29922;
+      --accent-purple: #a371f7;
+      --accent-red: #f85149;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+    
+    .last-updated {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0;
+    }
+    
+    .tab {
+      padding: 0.75rem 1.25rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s;
+    }
+    
+    .tab:hover {
+      color: var(--text-primary);
+    }
+    
+    .tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent-blue);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .section-grid {
+      display: grid;
+      gap: 1.25rem;
+    }
+    
+    .pr-section, .env-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+    }
+    
+    .pr-title, .env-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .pr-title a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+    
+    .pr-title a:hover {
+      text-decoration: underline;
+    }
+    
+    .run-count {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 0.85rem;
+    }
+    
+    .env-badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    
+    .env-stage {
+      background: rgba(210, 153, 34, 0.2);
+      color: var(--accent-yellow);
+    }
+    
+    .env-prod {
+      background: rgba(63, 185, 80, 0.2);
+      color: var(--accent-green);
+    }
+    
+    .runs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .run-entry {
+      padding: 0.75rem;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .run-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .run-meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .run-id, .sha {
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+    }
+    
+    .run-id {
+      color: var(--accent-purple);
+      text-decoration: none;
+    }
+    
+    .run-id:hover {
+      text-decoration: underline;
+    }
+    
+    .sha {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    
+    a.sha:hover {
+      color: var(--accent-blue);
+    }
+    
+    .run-time {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .job-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .job-link {
+      display: inline-block;
+      padding: 0.3rem 0.65rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    
+    .job-link:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+    }
+    
+    .branch-info {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .branch-info code {
+      background: var(--bg-secondary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    }
+    
+    .empty-state {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 2rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px dashed var(--border-color);
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--accent-blue);
+    }
+    
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    
+    footer a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+    
+    footer a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 640px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .run-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>E2E Test Reports</h1>
+      <p class="subtitle">Playwright test reports for pull requests and scheduled runs</p>
+      <p class="last-updated">Last updated: Feb 3, 2026, 09:51 AM UTC</p>
+    </header>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value">1</div>
+        <div class="stat-label">Active PRs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">1</div>
+        <div class="stat-label">Total Reports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Stage Runs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Prod Runs</div>
+      </div>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab active" data-tab="pr">Pull Requests</button>
+      <button class="tab" data-tab="scheduled">Scheduled</button>
+    </div>
+    
+    <div id="pr" class="tab-content active">
+      <div class="section-grid">
+        
+    <div class="pr-section">
+      <h3 class="pr-title">
+        <a href="https://github.com/ifeelBALANCED/cron-playwright/pull/2" target="_blank">PR #2</a>
+        <span class="run-count">(1 run)</span>
+      </h3>
+      <div class="runs-list">
+      <div class="run-entry">
+        <div class="run-header">
+          <span class="run-meta"><a href="https://github.com/ifeelBALANCED/cron-playwright/actions/runs/21625299658" class="run-id" target="_blank">#21625299658</a> · <a href="https://github.com/ifeelBALANCED/cron-playwright/commit/f0dd5323a9ae2713a6d2117c1f63df8d26c1fae8" class="sha" target="_blank">f0dd532</a></span>
+          <span class="run-time">Feb 3, 2026, 09:51 AM UTC</span>
+        </div>
+        <div class="job-links"><a href="/reports/pr/2/21625299658/chromium/" class="job-link" title="chromium">chromium</a><a href="/reports/pr/2/21625299658/firefox/" class="job-link" title="firefox">firefox</a><a href="/reports/pr/2/21625299658/mobile-chrome/" class="job-link" title="mobile-chrome">mobile-chrome</a><a href="/reports/pr/2/21625299658/mobile-safari/" class="job-link" title="mobile-safari">mobile-safari</a><a href="/reports/pr/2/21625299658/webkit/" class="job-link" title="webkit">webkit</a></div>
+        <div class="branch-info">Branch: <code>test/ci</code></div>
+      </div>
+    </div>
+    </div>
+  
+      </div>
+    </div>
+    
+    <div id="scheduled" class="tab-content">
+      <div class="section-grid">
+        
+        <p class="empty-state">No scheduled reports yet</p>
+      </div>
+    </div>
+    
+    <footer>
+      <a href="https://github.com/ifeelBALANCED/cron-playwright" target="_blank">View Repository</a> · 
+      Powered by <a href="https://playwright.dev" target="_blank">Playwright</a>
+    </footer>
+  </div>
+  
+  <script>
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
