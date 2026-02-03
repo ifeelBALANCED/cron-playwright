@@ -1,5 +1,6 @@
 {
   "name": "cron-playwright",
+  "description": "Automated Playwright E2E testing infrastructure with scheduled runs, GitHub Actions CI, and reports publishing for a Vite-based React app.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
