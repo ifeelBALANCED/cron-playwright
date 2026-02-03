@@ -23,7 +23,9 @@ const { values: args } = parseArgs({
 
 const SITE_DIR = args.siteDir;
 const REPO_URL = args.repoUrl;
-const PAGES_URL = args.pagesUrl;
+const PAGES_URL = (args.pagesUrl || '').replace(/\/$/, '');
+/** Base URL for report links (avoids absolute-path resolution to origin without repo name on project Pages) */
+const REPORT_BASE = PAGES_URL || '';
 const MANIFEST_PATH = path.join(SITE_DIR, 'manifest.json');
 const OUTPUT_PATH = path.join(SITE_DIR, 'reports', 'index.html');
 
@@ -65,9 +67,9 @@ function generatePrSection(prNumber, runs) {
   
   const runsHtml = runs.slice(0, 10).map(run => {
     const firstJob = run.jobs?.[0];
-    const primaryHref = firstJob ? `${run.url}/${firstJob}/` : run.url + '/';
+    const primaryHref = firstJob ? `${REPORT_BASE}${run.url}/${firstJob}/` : `${REPORT_BASE}${run.url}/`;
     const jobLinks = (run.jobs || []).map(job =>
-      `<a href="${run.url}/${job}/" class="job-link" title="View ${job} report">${job}</a>`
+      `<a href="${REPORT_BASE}${run.url}/${job}/" class="job-link" title="View ${job} report">${job}</a>`
     ).join('');
     
     const shaLink = REPO_URL && run.sha && run.sha !== 'unknown'
@@ -86,14 +88,14 @@ function generatePrSection(prNumber, runs) {
         </div>
         <div class="run-actions">
           <a href="${primaryHref}" class="btn-primary" title="Open Playwright HTML report">View report</a>
-          ${run.url ? `<a href="${run.url}/" class="btn-secondary" title="Browse all browser reports">All browsers</a>` : ''}
+          ${run.url ? `<a href="${REPORT_BASE}${run.url}/" class="btn-secondary" title="Browse all browser reports">All browsers</a>` : ''}
         </div>
         <div class="job-links" aria-label="Reports by browser">${jobLinks}</div>
         ${run.branch ? `<div class="branch-info">Branch: <code>${run.branch}</code></div>` : ''}
       </div>
     `;
   }).join('');
-  
+
   return `
     <section class="pr-section" aria-labelledby="pr-${prNumber}-title">
       <h2 id="pr-${prNumber}-title" class="pr-title">
@@ -111,9 +113,9 @@ function generatePrSection(prNumber, runs) {
 function generateScheduledSection(env, runs) {
   const runsHtml = runs.slice(0, 15).map(run => {
     const firstJob = run.jobs?.[0];
-    const primaryHref = firstJob ? `${run.url}/${firstJob}/` : run.url + '/';
+    const primaryHref = firstJob ? `${REPORT_BASE}${run.url}/${firstJob}/` : `${REPORT_BASE}${run.url}/`;
     const jobLinks = (run.jobs || []).map(job =>
-      `<a href="${run.url}/${job}/" class="job-link" title="View ${job} report">${job}</a>`
+      `<a href="${REPORT_BASE}${run.url}/${job}/" class="job-link" title="View ${job} report">${job}</a>`
     ).join('');
     
     const shaLink = REPO_URL && run.sha && run.sha !== 'unknown'
@@ -132,13 +134,13 @@ function generateScheduledSection(env, runs) {
         </div>
         <div class="run-actions">
           <a href="${primaryHref}" class="btn-primary" title="Open Playwright HTML report">View report</a>
-          ${run.url ? `<a href="${run.url}/" class="btn-secondary" title="Browse all suite reports">All suites</a>` : ''}
+          ${run.url ? `<a href="${REPORT_BASE}${run.url}/" class="btn-secondary" title="Browse all suite reports">All suites</a>` : ''}
         </div>
         <div class="job-links" aria-label="Reports by suite">${jobLinks}</div>
       </div>
     `;
   }).join('');
-  
+
   return `
     <section class="env-section" aria-labelledby="env-${env}-title">
       <h2 id="env-${env}-title" class="env-title">
@@ -610,7 +612,7 @@ function generateHtml(manifest) {
   <a href="#main" class="skip-link">Skip to reports</a>
   <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      ${PAGES_URL ? `<a href="${PAGES_URL.replace(/\/$/, '')}/">App</a>` : ''}
+      ${PAGES_URL ? `<a href="${PAGES_URL}/">App</a>` : ''}
       <span class="breadcrumb-sep">${PAGES_URL ? '/' : ''}</span>
       <span aria-current="page">Reports</span>
     </nav>
