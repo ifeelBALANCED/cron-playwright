@@ -64,16 +64,18 @@ function generatePrSection(prNumber, runs) {
   const prUrl = REPO_URL ? `${REPO_URL}/pull/${prNumber}` : '#';
   
   const runsHtml = runs.slice(0, 10).map(run => {
-    const jobLinks = run.jobs.map(job => 
-      `<a href="${run.url}/${job}/" class="job-link" title="${job}">${job}</a>`
+    const firstJob = run.jobs?.[0];
+    const primaryHref = firstJob ? `${run.url}/${firstJob}/` : run.url + '/';
+    const jobLinks = (run.jobs || []).map(job =>
+      `<a href="${run.url}/${job}/" class="job-link" title="View ${job} report">${job}</a>`
     ).join('');
     
     const shaLink = REPO_URL && run.sha && run.sha !== 'unknown'
-      ? `<a href="${REPO_URL}/commit/${run.sha}" class="sha" target="_blank">${run.sha.slice(0, 7)}</a>`
+      ? `<a href="${REPO_URL}/commit/${run.sha}" class="sha" target="_blank" rel="noopener">${run.sha.slice(0, 7)}</a>`
       : `<span class="sha">${(run.sha || 'unknown').slice(0, 7)}</span>`;
     
-    const runLink = REPO_URL 
-      ? `<a href="${REPO_URL}/actions/runs/${run.runId}" class="run-id" target="_blank">#${run.runId}</a>`
+    const runLink = REPO_URL
+      ? `<a href="${REPO_URL}/actions/runs/${run.runId}" class="run-id" target="_blank" rel="noopener">#${run.runId}</a>`
       : `<span class="run-id">#${run.runId}</span>`;
     
     return `
@@ -82,20 +84,24 @@ function generatePrSection(prNumber, runs) {
           <span class="run-meta">${runLink} · ${shaLink}</span>
           <span class="run-time">${formatDate(run.timestamp)}</span>
         </div>
-        <div class="job-links">${jobLinks}</div>
+        <div class="run-actions">
+          <a href="${primaryHref}" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          ${run.url ? `<a href="${run.url}/" class="btn-secondary" title="Browse all browser reports">All browsers</a>` : ''}
+        </div>
+        <div class="job-links" aria-label="Reports by browser">${jobLinks}</div>
         ${run.branch ? `<div class="branch-info">Branch: <code>${run.branch}</code></div>` : ''}
       </div>
     `;
   }).join('');
   
   return `
-    <div class="pr-section">
-      <h3 class="pr-title">
-        <a href="${prUrl}" target="_blank">PR #${prNumber}</a>
+    <section class="pr-section" aria-labelledby="pr-${prNumber}-title">
+      <h2 id="pr-${prNumber}-title" class="pr-title">
+        <a href="${prUrl}" target="_blank" rel="noopener">PR #${prNumber}</a>
         <span class="run-count">(${runs.length} run${runs.length !== 1 ? 's' : ''})</span>
-      </h3>
+      </h2>
       <div class="runs-list">${runsHtml}</div>
-    </div>
+    </section>
   `;
 }
 
@@ -104,16 +110,18 @@ function generatePrSection(prNumber, runs) {
  */
 function generateScheduledSection(env, runs) {
   const runsHtml = runs.slice(0, 15).map(run => {
-    const jobLinks = run.jobs.map(job =>
-      `<a href="${run.url}/${job}/" class="job-link" title="${job}">${job}</a>`
+    const firstJob = run.jobs?.[0];
+    const primaryHref = firstJob ? `${run.url}/${firstJob}/` : run.url + '/';
+    const jobLinks = (run.jobs || []).map(job =>
+      `<a href="${run.url}/${job}/" class="job-link" title="View ${job} report">${job}</a>`
     ).join('');
     
     const shaLink = REPO_URL && run.sha && run.sha !== 'unknown'
-      ? `<a href="${REPO_URL}/commit/${run.sha}" class="sha" target="_blank">${run.sha.slice(0, 7)}</a>`
+      ? `<a href="${REPO_URL}/commit/${run.sha}" class="sha" target="_blank" rel="noopener">${run.sha.slice(0, 7)}</a>`
       : `<span class="sha">${(run.sha || 'unknown').slice(0, 7)}</span>`;
     
     const runLink = REPO_URL
-      ? `<a href="${REPO_URL}/actions/runs/${run.runId}" class="run-id" target="_blank">#${run.runId}</a>`
+      ? `<a href="${REPO_URL}/actions/runs/${run.runId}" class="run-id" target="_blank" rel="noopener">#${run.runId}</a>`
       : `<span class="run-id">#${run.runId}</span>`;
     
     return `
@@ -122,19 +130,23 @@ function generateScheduledSection(env, runs) {
           <span class="run-meta">${run.date} · ${runLink} · ${shaLink}</span>
           <span class="run-time">${formatDate(run.timestamp)}</span>
         </div>
-        <div class="job-links">${jobLinks}</div>
+        <div class="run-actions">
+          <a href="${primaryHref}" class="btn-primary" title="Open Playwright HTML report">View report</a>
+          ${run.url ? `<a href="${run.url}/" class="btn-secondary" title="Browse all suite reports">All suites</a>` : ''}
+        </div>
+        <div class="job-links" aria-label="Reports by suite">${jobLinks}</div>
       </div>
     `;
   }).join('');
   
   return `
-    <div class="env-section">
-      <h3 class="env-title">
+    <section class="env-section" aria-labelledby="env-${env}-title">
+      <h2 id="env-${env}-title" class="env-title">
         <span class="env-badge env-${env}">${env.toUpperCase()}</span>
         <span class="run-count">(${runs.length} run${runs.length !== 1 ? 's' : ''})</span>
-      </h3>
+      </h2>
       <div class="runs-list">${runsHtml}</div>
-    </div>
+    </section>
   `;
 }
 
@@ -413,6 +425,116 @@ function generateHtml(manifest) {
       font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
     }
     
+    .run-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.9rem;
+      background: var(--accent-blue);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    
+    .btn-primary:hover {
+      background: #79b8ff;
+    }
+    
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+    
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.75rem;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    
+    .btn-secondary:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+    
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    
+    .breadcrumb a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+    
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    .breadcrumb-sep {
+      color: var(--text-muted);
+    }
+    
+    .tabs-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-primary);
+      padding-top: 0.25rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .tab:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+    
+    .skip-link {
+      position: absolute;
+      top: -2.5rem;
+      left: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--accent-blue);
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      border-radius: 4px;
+      z-index: 100;
+      transition: top 0.15s;
+    }
+    
+    .skip-link:focus {
+      top: 0.5rem;
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+    
     .empty-state {
       color: var(--text-muted);
       text-align: center;
@@ -485,14 +607,21 @@ function generateHtml(manifest) {
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to reports</a>
   <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      ${PAGES_URL ? `<a href="${PAGES_URL.replace(/\/$/, '')}/">App</a>` : ''}
+      <span class="breadcrumb-sep">${PAGES_URL ? '/' : ''}</span>
+      <span aria-current="page">Reports</span>
+    </nav>
+    
     <header>
       <h1>E2E Test Reports</h1>
       <p class="subtitle">Playwright test reports for pull requests and scheduled runs</p>
       <p class="last-updated">Last updated: ${formatDate(manifest.metadata?.lastUpdated)}</p>
     </header>
     
-    <div class="stats">
+    <div class="stats" aria-label="Report summary">
       <div class="stat-card">
         <div class="stat-value">${sortedPrs.length}</div>
         <div class="stat-label">Active PRs</div>
@@ -511,40 +640,93 @@ function generateHtml(manifest) {
       </div>
     </div>
     
-    <div class="tabs">
-      <button class="tab active" data-tab="pr">Pull Requests</button>
-      <button class="tab" data-tab="scheduled">Scheduled</button>
-    </div>
-    
-    <div id="pr" class="tab-content active">
-      <div class="section-grid">
-        ${prSections}
+    <div class="tabs-wrap">
+      <div class="tabs" role="tablist" aria-label="Report type">
+        <button type="button" class="tab active" data-tab="pr" role="tab" aria-selected="true" aria-controls="pr-panel" id="tab-pr">Pull Requests</button>
+        <button type="button" class="tab" data-tab="scheduled" role="tab" aria-selected="false" aria-controls="scheduled-panel" id="tab-scheduled">Scheduled</button>
       </div>
     </div>
     
-    <div id="scheduled" class="tab-content">
-      <div class="section-grid">
-        ${scheduledSections}
-        ${emptyScheduled}
+    <main id="main">
+      <div id="pr-panel" class="tab-content active" role="tabpanel" aria-labelledby="tab-pr">
+        <div class="section-grid">
+          ${prSections}
+        </div>
       </div>
-    </div>
+      
+      <div id="scheduled-panel" class="tab-content" role="tabpanel" aria-labelledby="tab-scheduled" hidden>
+        <div class="section-grid">
+          ${scheduledSections}
+          ${emptyScheduled}
+        </div>
+      </div>
+    </main>
     
     <footer>
-      ${REPO_URL ? `<a href="${REPO_URL}" target="_blank">View Repository</a> · ` : ''}
-      Powered by <a href="https://playwright.dev" target="_blank">Playwright</a>
+      ${REPO_URL ? `<a href="${REPO_URL}" target="_blank" rel="noopener">View Repository</a> · ` : ''}
+      Powered by <a href="https://playwright.dev" target="_blank" rel="noopener">Playwright</a>
     </footer>
   </div>
   
   <script>
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab).classList.add('active');
-      });
+{
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-content');
+
+  const setTab = (activeTab) => {
+    const tabId = activeTab.dataset.tab;
+    tabs.forEach((t) => {
+      const isActive = t === activeTab;
+      t.classList.toggle('active', isActive);
+      t.setAttribute('aria-selected', isActive);
     });
+    panels.forEach((p) => {
+      const isActive = p.id === tabId + '-panel';
+      p.classList.toggle('active', isActive);
+      p.hidden = !isActive;
+    });
+    try {
+      window.location.hash = tabId;
+    } catch (_) {}
+  };
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => setTab(tab));
+    tab.addEventListener('keydown', (e) => {
+      const idx = [...tabs].indexOf(tab);
+      if (e.key === 'ArrowRight' && idx < tabs.length - 1) {
+        e.preventDefault();
+        setTab(tabs[idx + 1]);
+        tabs[idx + 1].focus();
+      }
+      if (e.key === 'ArrowLeft' && idx > 0) {
+        e.preventDefault();
+        setTab(tabs[idx - 1]);
+        tabs[idx - 1].focus();
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        setTab(tabs[0]);
+        tabs[0].focus();
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        setTab(tabs[tabs.length - 1]);
+        tabs[tabs.length - 1].focus();
+      }
+    });
+  });
+
+  const hash = (window.location.hash || '#pr').slice(1);
+  const byHash = document.querySelector(\`.tab[data-tab="\${hash}"]\`);
+  if (byHash) setTab(byHash);
+
+  window.addEventListener('hashchange', () => {
+    const h = (window.location.hash || '#pr').slice(1);
+    const tabEl = document.querySelector(\`.tab[data-tab="\${h}"]\`);
+    if (tabEl) setTab(tabEl);
+  });
+}
   </script>
 </body>
 </html>`;
