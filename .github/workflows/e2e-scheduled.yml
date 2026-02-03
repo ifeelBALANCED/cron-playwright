@@ -236,6 +236,7 @@ jobs:
         with:
           path: _artifacts
           pattern: playwright-report-*
+        continue-on-error: true
       
       - name: List downloaded artifacts
         run: |
@@ -267,6 +268,9 @@ jobs:
           RUN_ID="${{ github.run_id }}"
           SHA="${{ github.sha }}"
           TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          
+          # Ensure _artifacts exists (download-artifact may have failed)
+          mkdir -p _artifacts
           
           # Copy existing gh-pages content
           mkdir -p _site
@@ -331,7 +335,12 @@ jobs:
           
           # Update manifest for each environment
           for env in "${!ENV_JOBS[@]}"; do
-            jobs="${ENV_JOBS[$env]}"
+            jobs_raw="${ENV_JOBS[$env]}"
+            if [ -z "${jobs_raw}" ]; then
+              JOBS_JSON="[]"
+            else
+              JOBS_JSON="[$(echo "${jobs_raw}" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')]"
+            fi
             
             REPORT_JSON=$(cat <<EOF
           {
@@ -341,7 +350,7 @@ jobs:
             "runId": "${RUN_ID}",
             "sha": "${SHA}",
             "timestamp": "${TIMESTAMP}",
-            "jobs": [$(echo "$jobs" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/' | sed 's/^""$//')]
+            "jobs": ${JOBS_JSON}
           }
           EOF
             )
