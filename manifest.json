@@ -101,6 +101,23 @@
         "branch": "feat/add-navigation",
         "url": "/reports/pr/7/21626890550"
       }
+    ],
+    "8": [
+      {
+        "runId": "21627066200",
+        "timestamp": "2026-02-03T10:45:08Z",
+        "sha": "842d27f247b5c8695af8d37ca3e23578189cd53f",
+        "jobs": [
+          "chromium",
+          "firefox",
+          "mobile-chrome",
+          "mobile-safari",
+          "webkit"
+        ],
+        "actor": "ifeelBALANCED",
+        "branch": "fix/root-page",
+        "url": "/reports/pr/8/21627066200"
+      }
     ]
   },
   "scheduled": {
@@ -108,7 +125,7 @@
     "prod": []
   },
   "metadata": {
-    "lastUpdated": "2026-02-03T10:39:54.940Z",
-    "totalReports": 6
+    "lastUpdated": "2026-02-03T10:45:08.829Z",
+    "totalReports": 7
   }
 }
