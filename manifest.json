@@ -33,6 +33,23 @@
         "branch": "test/ci-actions",
         "url": "/reports/pr/3/21625761220"
       }
+    ],
+    "4": [
+      {
+        "runId": "21625957660",
+        "timestamp": "2026-02-03T10:11:32Z",
+        "sha": "d2b994465ef49b1f7ee4450e47a9b08a441bf9b0",
+        "jobs": [
+          "chromium",
+          "firefox",
+          "mobile-chrome",
+          "mobile-safari",
+          "webkit"
+        ],
+        "actor": "ifeelBALANCED",
+        "branch": "test/report",
+        "url": "/reports/pr/4/21625957660"
+      }
     ]
   },
   "scheduled": {
@@ -40,7 +57,7 @@
     "prod": []
   },
   "metadata": {
-    "lastUpdated": "2026-02-03T10:05:16.297Z",
-    "totalReports": 2
+    "lastUpdated": "2026-02-03T10:11:33.126Z",
+    "totalReports": 3
   }
 }
