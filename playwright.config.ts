@@ -86,7 +86,7 @@ function getBaseURL(): string {
   
   const urls: Record<string, string> = {
     local: 'http://localhost:5173',
-    stage: process.env.STAGE_URL || 'https://stage.example.com',
+    stage: process.env.STAGE_URL || 'https://cron-playwright.vercel.app',
     prod: process.env.PROD_URL || 'https://example.com',
   };
   

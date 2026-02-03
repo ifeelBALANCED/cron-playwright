@@ -14,7 +14,7 @@ test.describe('Homepage', () => {
   });
 
   test('should have correct title @smoke', async ({ page }) => {
-    await expect(page).toHaveTitle(/Vite/);
+    await expect(page).toHaveTitle(/cron-playwright/);
   });
 
   test('should display Vite logo @smoke', async ({ page }) => {
@@ -79,7 +79,6 @@ test.describe('Accessibility', () => {
   test('should have readable text contrast @regression', async ({ page }) => {
     await page.goto('/');
     
-    // Basic visibility check for main content
     const mainContent = page.locator('h1, p, button');
     const count = await mainContent.count();
     
@@ -93,11 +92,9 @@ test.describe('Navigation', () => {
   test('external links should have correct targets @regression', async ({ page }) => {
     await page.goto('/');
     
-    // Vite link
     const viteLink = page.locator('a[href="https://vite.dev"]');
     await expect(viteLink).toHaveAttribute('target', '_blank');
     
-    // React link
     const reactLink = page.locator('a[href="https://react.dev"]');
     await expect(reactLink).toHaveAttribute('target', '_blank');
   });

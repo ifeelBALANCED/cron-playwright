@@ -263,6 +263,9 @@ jobs:
             --repoUrl "${REPO_URL}" \
             --pagesUrl "${PAGES_URL}"
       
+      - name: Ensure .nojekyll for GitHub Pages
+        run: touch _site/.nojekyll
+      
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:

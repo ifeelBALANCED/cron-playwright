@@ -59,8 +59,8 @@ env:
   KEEP_PR_RUNS: '20'
   KEEP_SCHEDULED_PER_ENV: '30'
   GLOBAL_CAP: '500'
-  # Default URLs (override in repository secrets or environment)
-  STAGE_URL: ${{ vars.STAGE_URL || 'https://stage.example.com' }}
+  # Default URLs (override in repository variables: vars.STAGE_URL / vars.PROD_URL)
+  STAGE_URL: ${{ vars.STAGE_URL || 'https://cron-playwright.vercel.app' }}
   PROD_URL: ${{ vars.PROD_URL || 'https://example.com' }}
 
 jobs:
@@ -363,6 +363,9 @@ jobs:
             --siteDir _site \
             --repoUrl "${REPO_URL}" \
             --pagesUrl "${PAGES_URL}"
+      
+      - name: Ensure .nojekyll for GitHub Pages
+        run: touch _site/.nojekyll
       
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
