@@ -68,9 +68,14 @@ export default defineConfig({
     },
   ],
 
-  /* Run local dev server before starting the tests (only in local dev) */
+  /* Run a server before tests: dev server locally, built app in CI */
   webServer: process.env.CI
-    ? undefined
+    ? {
+        command: 'pnpm exec vite preview --port 5173',
+        url: 'http://localhost:5173',
+        reuseExistingServer: false,
+        timeout: 60_000,
+      }
     : {
         command: 'pnpm dev',
         url: 'http://localhost:5173',
